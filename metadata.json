@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Gerador de Declaração de Faturamento",
+  "description": "Sistema profissional para geração de declarações de faturamento contábil com base em modelos oficiais, incluindo extração inteligente de dados via IA.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
