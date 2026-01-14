@@ -163,6 +163,16 @@ const App: React.FC = () => {
     handleMonthChange(index, 'amount', Number(digits) / 100);
   };
 
+  const handleTableKeyDown = (e: React.KeyboardEvent, index: number, field: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextInput = document.querySelector(`[data-row="${index + 1}"][data-field="${field}"]`) as HTMLInputElement;
+      if (nextInput) {
+        nextInput.focus();
+      }
+    }
+  };
+
   const handleExportPDF = () => {
     const element = document.getElementById('billing-doc');
     if (!element) {
@@ -221,13 +231,13 @@ const App: React.FC = () => {
     return nameNorm.includes(searchNorm) || ufNorm === searchNorm;
   }).slice(0, 15);
 
-  // Lógica para proteger as tags do texto da declaração
   const declarationParts = data.declarationText.split(/(\[EMPRESA\]|\[ENDEREÇO\]|\[CNPJ\])/);
 
   const updateDeclarationPart = (index: number, newValue: string) => {
     const newParts = [...declarationParts];
     newParts[index] = newValue;
-    handleInputChange('declarationText', newParts.join(''));
+    const newFullText = newParts.join('');
+    setData((prev) => ({ ...prev, declarationText: newFullText }));
   };
 
   return (
@@ -238,7 +248,7 @@ const App: React.FC = () => {
             <div className="bg-[#1e3a5f] p-2 rounded-xl text-white shadow-md"><FileText size={24} /></div>
             <div>
               <h1 className="text-xl font-bold text-gray-900 tracking-tight">Declaração de Faturamento</h1>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Sistema de Gestão</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider text-left">Sistema de Geração</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -301,45 +311,45 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Texto da Declaração Protegido */}
+              {/* Texto da Declaração Protegido com Formato de Parágrafo Contínuo - AJUSTADO SEM ESPAÇOS */}
               <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Texto da Declaração</h3>
-                  <div className="flex items-center gap-1.5 text-[10px] text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-bold border border-blue-100">
-                    <Lock size={10} /> TAGS BLOQUEADAS
+                  <div className="flex items-center gap-1.5 text-[10px] text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-bold border border-blue-100 uppercase">
+                    <Lock size={10} /> Tags Bloqueadas
                   </div>
                 </div>
                 <div className="p-6">
-                  <div className="flex flex-wrap items-center gap-y-2 bg-gray-50 border border-gray-300 rounded-2xl p-4 min-h-[120px] content-start">
+                  <div className="bg-gray-50 border border-gray-300 rounded-2xl p-6 min-h-[120px] text-sm text-gray-700 leading-relaxed text-left cursor-text">
                     {declarationParts.map((part, idx) => {
                       const isTag = part === '[EMPRESA]' || part === '[ENDEREÇO]' || part === '[CNPJ]';
                       if (isTag) {
                         return (
-                          <div key={idx} className="bg-[#1e3a5f] text-white text-[11px] font-black px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm border border-[#1e3a5f] mx-1">
+                          <span 
+                            key={idx} 
+                            className="font-black text-blue-700 underline decoration-blue-400 decoration-1 underline-offset-4 select-none cursor-default px-0 whitespace-nowrap"
+                            contentEditable={false}
+                            title="Campo automático (Bloqueado)"
+                          >
                             {part}
-                            <Lock size={12} className="opacity-50" />
-                          </div>
+                          </span>
                         );
                       }
                       return (
-                        <textarea
+                        <span
                           key={idx}
-                          rows={1}
-                          value={part}
-                          onChange={(e) => updateDeclarationPart(idx, e.target.value)}
-                          placeholder="..."
-                          className="bg-transparent border-none p-1 text-sm text-gray-700 focus:ring-0 outline-none flex-grow min-w-[50px] resize-none overflow-hidden h-auto"
-                          onInput={(e) => {
-                            const target = e.target as HTMLTextAreaElement;
-                            target.style.height = 'auto';
-                            target.style.height = target.scrollHeight + 'px';
-                          }}
-                        />
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => updateDeclarationPart(idx, e.currentTarget.innerText)}
+                          className="outline-none whitespace-pre-wrap px-0"
+                        >
+                          {part}
+                        </span>
                       );
                     })}
                   </div>
                   <p className="mt-3 text-[10px] text-gray-400 font-medium italic">
-                    * As tags em azul são preenchidas automaticamente e não podem ser removidas para garantir a integridade do documento.
+                    * Clique nos textos acima para editar. As tags azuis são preenchidas automaticamente e não podem ser apagadas.
                   </p>
                 </div>
               </div>
@@ -350,32 +360,65 @@ const App: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-2">
                     <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Razão social</label>
-                    <input type="text" value={data.companyName} onChange={(e) => handleInputChange('companyName', e.target.value)} placeholder="RAZÃO SOCIAL" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 font-bold uppercase outline-none focus:bg-white" />
+                    <input type="text" value={data.companyName} onChange={(e) => handleInputChange('companyName', e.target.value)} placeholder="RAZÃO SOCIAL" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 font-bold uppercase outline-none focus:bg-white transition-all" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">CNPJ</label>
-                    <input type="text" value={data.cnpj} onChange={(e) => handleInputChange('cnpj', e.target.value)} placeholder="00.000.000/0000-00" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 outline-none focus:bg-white" />
+                    <input type="text" value={data.cnpj} onChange={(e) => handleInputChange('cnpj', e.target.value)} placeholder="00.000.000/0000-00" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 outline-none focus:bg-white transition-all" />
                   </div>
                   <div className="md:col-span-3">
                     <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Endereço Completo</label>
-                    <input type="text" value={data.address} onChange={(e) => handleInputChange('address', e.target.value)} placeholder="RUA, NÚMERO, BAIRRO" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 uppercase outline-none focus:bg-white" />
+                    <input type="text" value={data.address} onChange={(e) => handleInputChange('address', e.target.value)} placeholder="RUA, NÚMERO, BAIRRO" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 uppercase outline-none focus:bg-white transition-all" />
                   </div>
                 </div>
               </div>
 
-              {/* Tabela de Faturamento */}
+              {/* Tabela de Faturamento - COM LÓGICA DE TECLADO */}
               <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                   <h3 className="text-xs font-black text-gray-400 uppercase">Meses de Faturamento</h3>
-                  <button onClick={handleAddNewMonth} className="bg-[#1e3a5f] text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">+ Adicionar</button>
+                  <button onClick={handleAddNewMonth} className="bg-[#1e3a5f] text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#2c5282] transition-colors">+ Adicionar</button>
                 </div>
-                <div className="p-6 flex flex-col space-y-0">
+                <div className="p-6 flex flex-col space-y-2">
                   {data.billingMonths.map((item, idx) => (
-                    <div key={idx} className="flex gap-4 items-center bg-gray-50 p-1 rounded-xl shadow-sm">
-                      <input type="text" value={item.year} onChange={(e) => handleMonthChange(idx, 'year', e.target.value)} placeholder="ANO" className="w-20 bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold text-center outline-none" />
-                      <input type="text" value={item.month} onChange={(e) => handleMonthChange(idx, 'month', e.target.value)} placeholder="MÊS" className="flex-1 bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold uppercase outline-none" />
-                      <input type="text" value={formatAsCurrency(item.amount)} onChange={(e) => handleCurrencyInput(idx, e.target.value)} placeholder="R$ 0,00" className="w-32 bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold text-right outline-none" />
-                      <button onClick={() => setData(prev => ({...prev, billingMonths: prev.billingMonths.filter((_, i) => i !== idx)}))} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                    <div key={idx} className="flex gap-4 items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
+                      <input 
+                        type="text" 
+                        data-row={idx} 
+                        data-field="year" 
+                        value={item.year} 
+                        onChange={(e) => handleMonthChange(idx, 'year', e.target.value)} 
+                        onKeyDown={(e) => handleTableKeyDown(e, idx, 'year')}
+                        placeholder="ANO" 
+                        className="w-20 bg-white border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-bold text-center outline-none focus:ring-1 focus:ring-blue-200" 
+                      />
+                      <input 
+                        type="text" 
+                        data-row={idx} 
+                        data-field="month" 
+                        value={item.month} 
+                        onChange={(e) => handleMonthChange(idx, 'month', e.target.value)} 
+                        onKeyDown={(e) => handleTableKeyDown(e, idx, 'month')}
+                        placeholder="MÊS" 
+                        className="flex-1 bg-white border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-bold uppercase outline-none focus:ring-1 focus:ring-blue-200" 
+                      />
+                      <input 
+                        type="text" 
+                        data-row={idx} 
+                        data-field="amount" 
+                        value={formatAsCurrency(item.amount)} 
+                        onChange={(e) => handleCurrencyInput(idx, e.target.value)} 
+                        onKeyDown={(e) => handleTableKeyDown(e, idx, 'amount')}
+                        placeholder="R$ 0,00" 
+                        className="w-32 bg-white border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-bold text-right outline-none focus:ring-1 focus:ring-blue-200" 
+                      />
+                      <button 
+                        onClick={() => setData(prev => ({...prev, billingMonths: prev.billingMonths.filter((_, i) => i !== idx)}))} 
+                        tabIndex={-1} 
+                        className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>
