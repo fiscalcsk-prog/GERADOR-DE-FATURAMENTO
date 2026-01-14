@@ -26,7 +26,13 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
     }).join(' ');
   };
 
-  const fullAddressForDoc = `${toTitleCase(data.address)}${data.addressComplement ? ', ' + toTitleCase(data.addressComplement) : ''}, ${data.city} - ${data.state}`;
+  const formattedCity = toTitleCase(data.city);
+  const formattedAddress = toTitleCase(data.address);
+  const formattedNeighborhood = toTitleCase(data.neighborhood);
+  const formattedComplement = data.addressComplement ? toTitleCase(data.addressComplement) : '';
+
+  // Ordem: Logradouro, Número, Bairro, Complemento, Cidade - UF
+  const fullAddressForDoc = `${formattedAddress}${data.addressNumber ? ', ' + data.addressNumber : ''}${formattedNeighborhood ? ', ' + formattedNeighborhood : ''}${formattedComplement ? ', ' + formattedComplement : ''}, ${formattedCity} - ${data.state}`;
 
   const renderProcessedText = () => {
     const text = data.declarationText;
@@ -50,10 +56,6 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
   };
 
   return (
-    /* 
-       AJUSTE MANUAL DO TOPO DO PAPEL (Margem Geral):
-       No 'p-[9mm_20mm_10mm_20mm]' abaixo, o '9mm' é o espaço do topo. 
-    */
     <div id="billing-doc" className="bg-white w-[210mm] min-h-[297mm] p-[9mm_20mm_10mm_20mm] mx-auto shadow-2xl print:shadow-none print:m-0 border border-gray-100 print:border-none flex flex-col text-gray-900 leading-tight overflow-hidden font-serif">
       
       <div className="flex flex-col items-center mb-8 min-h-[40px] justify-center no-print-background pt-4">
@@ -84,7 +86,6 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
                 <td className="py-1 px-4 text-center text-[11px] border-r border-gray-200 uppercase">{item.month}</td>
                 <td className="py-1 px-4 text-right text-[11px]">
                   <div className="flex justify-between w-full px-2">
-                    {/* AJUSTE: O 'R$' agora é preto (text-gray-900) e herda a fonte da tabela */}
                     <span className="text-gray-900 font-bold">R$</span>
                     <span className="font-bold">{formatCurrency(item.amount)}</span>
                   </div>

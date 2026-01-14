@@ -14,7 +14,9 @@ const INITIAL_STATE: BillingData = {
   companyName: '',
   cep: '',
   address: '',
+  addressNumber: '',
   addressComplement: '',
+  neighborhood: '',
   cnpj: '',
   city: '',
   state: '',
@@ -108,10 +110,51 @@ const App: React.FC = () => {
     }
   }, [selectedMun, selectedDate]);
 
+  const formatCNPJ = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    return digits
+      .replace(/^(\d{2})(\d)/, '$1.$2')
+      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .substring(0, 18);
+  };
+
   const handleInputChange = (field: keyof BillingData, value: any) => {
-    const upperFields: (keyof BillingData)[] = ['companyName', 'city', 'state', 'address', 'addressComplement'];
-    const finalValue = upperFields.includes(field) && typeof value === 'string' ? value.toUpperCase() : value;
+    let finalValue = value;
+    const upperFields: (keyof BillingData)[] = ['companyName', 'city', 'state', 'address', 'addressComplement', 'addressNumber', 'neighborhood'];
+    
+    if (upperFields.includes(field) && typeof value === 'string') {
+      finalValue = value.toUpperCase();
+    }
+
+    if (field === 'cnpj') {
+      finalValue = formatCNPJ(value);
+    }
+
     setData((prev) => ({ ...prev, [field]: finalValue }));
+  };
+
+  const handleCepLookup = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    handleInputChange('cep', cleanCep);
+    if (cleanCep.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+        const result = await response.json();
+        if (!result.erro) {
+          setData(prev => ({
+            ...prev,
+            address: result.logradouro.toUpperCase(),
+            neighborhood: result.bairro.toUpperCase(),
+            city: result.localidade.toUpperCase(),
+            state: result.uf.toUpperCase()
+          }));
+        }
+      } catch (e) {
+        console.error("Erro ao buscar CEP:", e);
+      }
+    }
   };
 
   const handleSignatoryChange = (signatory: 'partner' | 'accountant', field: string, value: string) => {
@@ -354,11 +397,11 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Dados Cadastrais */}
+              {/* Dados Cadastrais com Re-inclusão do CEP */}
               <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-6 space-y-6">
                 <h3 className="text-xs font-black text-gray-400 uppercase flex items-center gap-2"><MapPin size={14} /> Dados da Empresa</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="md:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="md:col-span-3">
                     <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Razão social</label>
                     <input type="text" value={data.companyName} onChange={(e) => handleInputChange('companyName', e.target.value)} placeholder="RAZÃO SOCIAL" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 font-bold uppercase outline-none focus:bg-white transition-all" />
                   </div>
@@ -366,9 +409,33 @@ const App: React.FC = () => {
                     <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">CNPJ</label>
                     <input type="text" value={data.cnpj} onChange={(e) => handleInputChange('cnpj', e.target.value)} placeholder="00.000.000/0000-00" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 outline-none focus:bg-white transition-all" />
                   </div>
-                  <div className="md:col-span-3">
-                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Endereço Completo</label>
-                    <input type="text" value={data.address} onChange={(e) => handleInputChange('address', e.target.value)} placeholder="RUA, NÚMERO, BAIRRO" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 uppercase outline-none focus:bg-white transition-all" />
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">CEP</label>
+                    <input type="text" value={data.cep} onChange={(e) => handleCepLookup(e.target.value)} placeholder="00000-000" maxLength={9} className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 outline-none focus:bg-white transition-all font-bold" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Logradouro</label>
+                    <input type="text" value={data.address} onChange={(e) => handleInputChange('address', e.target.value)} placeholder="RUA, AVENIDA, ETC" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 uppercase outline-none focus:bg-white transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Número</label>
+                    <input type="text" value={data.addressNumber} onChange={(e) => handleInputChange('addressNumber', e.target.value)} placeholder="Nº" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 uppercase outline-none focus:bg-white transition-all" />
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Estado</label>
+                    <input type="text" value={data.state} onChange={(e) => handleInputChange('state', e.target.value)} placeholder="UF" maxLength={2} className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 uppercase outline-none focus:bg-white transition-all" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Bairro</label>
+                    <input type="text" value={data.neighborhood} onChange={(e) => handleInputChange('neighborhood', e.target.value)} placeholder="BAIRRO" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 uppercase outline-none focus:bg-white transition-all" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Cidade</label>
+                    <input type="text" value={data.city} onChange={(e) => handleInputChange('city', e.target.value)} placeholder="CIDADE" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 uppercase outline-none focus:bg-white transition-all" />
+                  </div>
+                  <div className="md:col-span-4">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Complemento</label>
+                    <input type="text" value={data.addressComplement} onChange={(e) => handleInputChange('addressComplement', e.target.value)} placeholder="APTO, SALA, ETC" className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 uppercase outline-none focus:bg-white transition-all" />
                   </div>
                 </div>
               </div>

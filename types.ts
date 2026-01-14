@@ -15,7 +15,9 @@ export interface BillingData {
   companyName: string;
   cep: string;
   address: string;
+  addressNumber: string;
   addressComplement: string;
+  neighborhood: string;
   cnpj: string;
   city: string;
   state: string;
