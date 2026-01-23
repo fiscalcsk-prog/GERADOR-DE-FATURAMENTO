@@ -163,7 +163,7 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
           {data.locationDateText}
         </div>
 
-        <div className="mt-32 grid grid-cols-2 gap-12 text-center avoid-break" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <div className="mt-24 grid grid-cols-2 gap-12 text-center avoid-break" style={{ fontFamily: 'Arial, sans-serif' }}>
           <div className="flex flex-col items-center">
             <div className="w-full border-t-[1px] border-gray-400 mb-1"></div>
             <div className="text-[12px] font-bold uppercase text-gray-900 mb-0.5">{data.partner.name || '[NOME DO SÓCIO]'}</div>
