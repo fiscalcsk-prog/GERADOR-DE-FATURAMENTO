@@ -37,7 +37,6 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
   const formattedNeighborhood = toTitleCase(data.neighborhood);
   const formattedComplement = data.addressComplement ? toTitleCase(data.addressComplement) : '';
 
-  // Ordem: Logradouro, Número, Bairro, Complemento, Cidade - UF
   const fullAddressForDoc = `${formattedAddress}${data.addressNumber ? ', ' + data.addressNumber : ''}${
     formattedNeighborhood ? ', ' + formattedNeighborhood : ''
   }${formattedComplement ? ', ' + formattedComplement : ''}, ${formattedCity} - ${data.state}`;
@@ -67,15 +66,11 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
     });
   };
 
+  // Determina se precisa de múltiplas páginas (mais de 12 meses)
+  const needsMultiplePages = data.billingMonths.length > 12;
+
   return (
     <>
-      {/* =========================================================
-          BLOCO DE IMPRESSÃO LOCAL (SEM CSS GLOBAL)
-          =========================================================
-          NOTA A1: A4 + margin 0 evita margens automáticas do browser.
-          NOTA A2: print-color-adjust mantém cores.
-          NOTA A3: .avoid-break reduz chance de quebra dentro de blocos.
-      */}
       <style>
         {`
           @media print {
@@ -89,29 +84,20 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
 
       <div
         id="billing-doc"
-        className="
+        className={`
           relative
-          bg-white w-[210mm] h-[285mm] box-border
+          bg-white w-[210mm] ${needsMultiplePages ? 'min-h-[297mm]' : 'min-h-[285mm]'} box-border
           p-[9mm_20mm_10mm_20mm]
-          pb-[28mm]
+          pb-[32mm]
           mx-auto
           shadow-none
           border-0
           print:shadow-none print:m-0
           print:border-none
           flex flex-col text-gray-900 leading-tight
-          overflow-visible
           font-serif
-       "
+       `}
       >
-
-        {/* NOTA X1: Adicionado `relative` no container para o rodapé absoluto funcionar. */}
-        {/* NOTA X2: Adicionado `pb-[28mm]` para reservar espaço do rodapé e NÃO gerar 2 páginas.
-            AJUSTE FINO:
-            - se ainda encostar conteúdo no rodapé: pb-[30mm]
-            - se sobrar espaço demais e você quiser mais área útil: pb-[24mm]
-        */}
-
         <div className="flex flex-col items-center mb-6 min-h-[40px] justify-center no-print-background pt-4">
           {data.logoUrl && <img src={data.logoUrl} className="max-h-[65px] max-w-[280px] object-contain" />}
         </div>
@@ -127,8 +113,8 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
           {renderProcessedText()}
         </div>
 
-        {/* TABELA */}
-        <div className="w-full mb-7 overflow-hidden border border-[#1e3a5f] rounded-sm shadow-sm avoid-break">
+        {/* TABELA - Agora sem altura fixa e overflow-hidden */}
+        <div className="w-full mb-7 border border-[#1e3a5f] rounded-sm shadow-sm avoid-break">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-[#1e3a5f] text-white">
@@ -138,7 +124,6 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
               </tr>
             </thead>
 
-            {/* NOTA T1: Arial aplicado SOMENTE no tbody (linhas). */}
             <tbody style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
               {data.billingMonths.map((item, idx) => (
                 <tr
@@ -171,16 +156,13 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
           </table>
         </div>
 
-        {/* LOCALIDADE E DATA (Aptos normal) */}
         <div
           className="mb-8 text-[0.95rem] font-normal text-gray-800 tracking-tight avoid-break"
           style={{ fontFamily: '"Aptos", "Segoe UI", "Tahoma", sans-serif' }}
         >
           {data.locationDateText}
         </div>
-        {/* NOTA L1: Corrigido `font-normalc` -> `font-normal` (isso causava desconfiguração). */}
 
-        {/* ASSINATURAS */}
         <div className="mt-32 grid grid-cols-2 gap-12 text-center avoid-break" style={{ fontFamily: 'Arial, sans-serif' }}>
           <div className="flex flex-col items-center">
             <div className="w-full border-t-[1px] border-gray-400 mb-1"></div>
@@ -197,26 +179,15 @@ const BillingDocument: React.FC<BillingDocumentProps> = ({ data }) => {
           </div>
         </div>
 
-        {/* =========================================================
-           RODAPÉ ABSOLUTO (não entra no fluxo, NÃO empurra para 2ª página)
-           ========================================================= */}
+        {/* RODAPÉ ABSOLUTO */}
         <div className="absolute left-[20mm] right-[20mm] bottom-[6mm]">
-          {/* LINHA do rodapé */}
           <div className="border-t-[0.8px] border-gray-300 mb-2" />
-
-          {/* TEXTO do rodapé */}
           <div className="text-center text-[9px] text-gray-500 font-sans tracking-[0.05em] leading-[1.2]">
             <p className="font-bold uppercase mb-0.5 text-gray-600">{data.footerLine1}</p>
             <p className="uppercase opacity-95">{data.footerLine2}</p>
             <p className="uppercase opacity-80">{data.footerLine3}</p>
           </div>
         </div>
-
-        {/* NOTA R1 (pente-fino): Para SUBIR o rodapé: bottom-[6mm] -> bottom-[8mm] -> bottom-[10mm]
-            NOTA R2 (pente-fino): Para DESCER o rodapé: bottom-[6mm] -> bottom-[5mm] -> bottom-[4mm]
-            NOTA R3 (pente-fino): Se rodapé encostar no conteúdo: aumente pb-[28mm] para pb-[30mm]
-            NOTA R4 (pente-fino): Se ainda gerar 2 páginas: reduza altura h-[285mm] para h-[283mm]
-        */}
       </div>
     </>
   );
